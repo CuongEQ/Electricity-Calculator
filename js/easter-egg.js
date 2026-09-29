@@ -108,7 +108,7 @@ function createEasterEggDOM() {
 
       <div class="bezit-subtext">
         <span class="sparkle">⭐</span>
-        <span>Chúc Boà & Zịt một ngày tràn ngập niềm vui!</span>
+        <span>Chúc Bé zịt một ngày tràn ngập niềm vui!</span>
         <span class="sparkle">⭐</span>
       </div>
     </div>
@@ -190,7 +190,7 @@ function resizeCanvas() {
 }
 
 const FIREWORK_COLORS = [
-  '#ff477e', '#ff758c', '#ffbe0b', '#fb5607', 
+  '#ff477e', '#ff758c', '#ffbe0b', '#fb5607',
   '#ff006e', '#8338ec', '#3a86ff', '#06d6a0', '#ff99c8'
 ];
 
@@ -218,7 +218,7 @@ function launchRocket() {
   const startX = Math.random() * (canvas.width * 0.8) + (canvas.width * 0.1);
   const targetY = Math.random() * (canvas.height * 0.45) + (canvas.height * 0.1);
   const speed = Math.random() * 3 + 11;
-  
+
   rockets.push({
     x: startX,
     y: canvas.height,
@@ -323,7 +323,7 @@ function stopFireworks() {
 /* ==========================================================================
    Trái tim bay xung quanh (Floating Hearts)
    ========================================================================== */
-const HEART_ICONS = ['💖', '💕', '❤️', '💓', '💘', '✨', '🌸', '🐄', '🪿'];
+const HEART_ICONS = ['💖', '💕', '❤️', '💓', '💘', '🌻'];
 
 function spawnHeart() {
   const container = document.getElementById('bezit-hearts-layer');
@@ -331,7 +331,7 @@ function spawnHeart() {
 
   const heart = document.createElement('div');
   heart.className = 'bezit-floating-heart';
-  
+
   // Icon ngẫu nhiên (chủ yếu là trái tim, thi thoảng kèm Boà & Zịt)
   const icon = HEART_ICONS[Math.floor(Math.random() * HEART_ICONS.length)];
   heart.textContent = icon;
