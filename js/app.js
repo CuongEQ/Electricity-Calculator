@@ -103,8 +103,8 @@ async function handleAuthStateUpdate(user) {
   await navigateTo(activeView);
 }
 
-// Khởi chạy khi tài liệu sẵn sàng
-document.addEventListener('DOMContentLoaded', async () => {
+// Khởi chạy khi tài liệu sẵn sàng (Do dùng type="module" và top-level await, DOM đã sẵn sàng)
+(async () => {
   // 1. Khởi tạo theme
   initTheme();
 
@@ -170,4 +170,4 @@ document.addEventListener('DOMContentLoaded', async () => {
       logout();
     }
   });
-});
+})();

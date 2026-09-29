@@ -28,7 +28,7 @@ export async function loadFirebaseConfig() {
 
   // 2. Thử tải từ file local gitignored (cho môi trường dev cá nhân)
   try {
-    const localModule = await import('./config.local.js.tmp');
+    const localModule = await import('./config.local.js ');
     if (localModule && localModule.firebaseConfig) {
       cachedConfig = localModule.firebaseConfig;
       console.log('🔑 Đã nạp cấu hình Firebase từ config.local.js');
