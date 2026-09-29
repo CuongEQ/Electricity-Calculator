@@ -7,7 +7,15 @@ import {
 } from './storage-service.js';
 import { getCurrentUser } from './auth.js';
 import { getCurrentRoom, fetchCurrentRoom } from './room.js';
-import { formatVND, formatHours, showToast, openModal, closeModal } from './ui.js';
+import { 
+  formatVND, 
+  formatHours, 
+  showToast, 
+  openModal, 
+  closeModal,
+  formatNumberWithSeparators,
+  parseFormattedNumber
+} from './ui.js';
 
 let statsYear = new Date().getFullYear();
 let statsMonth = new Date().getMonth(); // 0-indexed
@@ -188,16 +196,19 @@ export async function renderStatsView() {
         </div>
 
         <form id="form-update-bill" class="bill-input-group">
-          <input 
-            type="number" 
-            id="input-monthly-bill" 
-            class="form-input bill-amount-input" 
-            placeholder="Số tiền VNĐ..." 
-            value="${currentBill || ''}" 
-            min="0" 
-            step="1000"
-            required 
-          />
+          <div style="position: relative; display: inline-flex; align-items: center;">
+            <input 
+              type="text" 
+              inputmode="numeric"
+              id="input-monthly-bill" 
+              class="form-input bill-amount-input" 
+              placeholder="VD: 850.000" 
+              value="${currentBill > 0 ? formatNumberWithSeparators(currentBill) : ''}" 
+              style="padding-right: 36px;"
+              required 
+            />
+            <span style="position: absolute; right: 12px; font-weight: 700; color: var(--text-muted); pointer-events: none;">₫</span>
+          </div>
           <button type="submit" class="btn btn-primary">
             💾 Lưu hóa đơn tháng
           </button>
@@ -348,11 +359,18 @@ export async function renderStatsView() {
     triggerModal('days', 'Tính theo Ngày', 'Tính theo Giờ');
   });
 
+  // Tự động ngăn cách 3 chữ số khi nhập giá tiền
+  const billInput = document.getElementById('input-monthly-bill');
+  billInput?.addEventListener('input', (e) => {
+    const formatted = formatNumberWithSeparators(e.target.value);
+    e.target.value = formatted;
+  });
+
   // Gắn sự kiện lưu hóa đơn
   document.getElementById('form-update-bill')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const amountVal = document.getElementById('input-monthly-bill').value;
-    const amount = parseFloat(amountVal);
+    const amount = parseFormattedNumber(amountVal);
     if (isNaN(amount) || amount < 0) {
       showToast('Vui lòng nhập số tiền hợp lệ!', 'error');
       return;

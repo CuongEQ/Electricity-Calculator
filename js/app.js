@@ -65,6 +65,12 @@ async function handleAuthStateUpdate(user) {
   const room = await fetchCurrentRoom();
   const isAdmin = room && room.adminId === user.id;
 
+  // Cập nhật tên phòng trên Topbar
+  const roomTag = document.getElementById('topbar-room-name');
+  if (roomTag) {
+    roomTag.textContent = room ? `🏠 ${room.name}` : 'Chưa vào phòng';
+  }
+
   if (userRoleEl) {
     userRoleEl.textContent = room ? (isAdmin ? 'Quản lý phòng' : 'Thành viên') : 'Chưa vào phòng';
   }

@@ -13,13 +13,22 @@ import { showToast, copyToClipboard, openModal, closeModal } from './ui.js';
 
 let currentRoomData = null;
 
+export function updateTopbarRoomBadge(room) {
+  const roomTag = document.getElementById('topbar-room-name');
+  if (roomTag) {
+    roomTag.textContent = room ? `🏠 ${room.name}` : 'Chưa vào phòng';
+  }
+}
+
 export async function fetchCurrentRoom() {
   const user = getCurrentUser();
   if (!user || !user.roomId) {
     currentRoomData = null;
+    updateTopbarRoomBadge(null);
     return null;
   }
   currentRoomData = await getRoomById(user.roomId);
+  updateTopbarRoomBadge(currentRoomData);
   return currentRoomData;
 }
 

@@ -14,27 +14,28 @@
 2. **Quản lý phòng thông minh:**
    - Tạo phòng mới kèm mã mời độc nhất 6 ký tự.
    - Người tạo phòng tự động là **Quản lý phòng (Admin)**.
+   - Hiển thị tên đăng nhập `@username` của quản lý phòng thay vì chữ chung chung.
    - Thành viên khác tham gia thông qua mã phòng.
-   - Quản lý phòng có quyền: **Duyệt / Từ chối yêu cầu tham gia**, **Xóa thành viên khỏi phòng**, nhập hóa đơn tiền điện tháng.
+   - Quản lý phòng có quyền: **Duyệt / Từ chối yêu cầu tham gia**, **Xóa thành viên khỏi phòng**.
+   - **Tự rời phòng:** Thành viên có thể chủ động rời phòng. Nếu là Quản lý rời phòng, quyền quản lý sẽ tự động chuyển giao cho người kế tiếp; nếu phòng hết thành viên, phòng sẽ tự động được xóa.
 
-3. **Lịch biểu & Khai báo giờ dùng điện:**
+3. **Lịch biểu & Khai báo giờ / ngày linh hoạt:**
    - Trực quan hóa toàn bộ ngày trong tháng với lưới lịch hiện đại.
-   - Khai báo các khoảng thời gian theo định dạng `HH:MM - HH:MM`.
-   - **Hệ thống lọc và kiểm soát ngoại lệ chặt chẽ:**
-     - Kiểm tra định dạng `HH:MM` (00:00 - 23:59).
-     - Bắt buộc `Giờ bắt đầu < Giờ kết thúc`.
-     - Ngăn chặn hoàn toàn việc khai báo trùng lặp (overlap) giữa các khoảng giờ trong cùng ngày.
-     - Chặn khai báo cho các ngày trong tương lai.
-   - Thống kê tổng số giờ cá nhân, tổng số giờ cả phòng và **số tiền dự kiến phải trả** trực tiếp trên màn hình lịch.
+   - **Hỗ trợ 2 chế độ tính toán theo cấu hình tháng:**
+     - **Theo Giờ:** Khai báo khoảng thời gian `HH:MM - HH:MM` kèm bộ lọc chống trùng lặp, chặn ngày tương lai.
+     - **Theo Ngày:** Xác nhận chỉ với 1 click "Có sử dụng điện" mà không cần nhập giờ chi tiết.
+   - Thống kê tổng số giờ/ngày cá nhân, cả phòng và **số tiền dự kiến phải trả** trực tiếp trên màn hình lịch.
 
 4. **Thống kê & Tính tiền điện (Quản lý phòng):**
-   - Quản lý phòng nhập tổng hóa đơn tiền điện cả phòng trong tháng.
+   - Quản lý phòng có thể cấu hình tháng tính theo **Ngày** hoặc theo **Giờ**.
+   - **Popup cảnh báo an toàn:** Khi chuyển đổi phương thức tính, hiển thị popup xác nhận và tự động xóa dữ liệu cũ trong tháng để tránh sai lệch.
+   - Nhập tổng hóa đơn tiền điện cả phòng: **Tự động ngăn cách 3 chữ số khi nhập** (VD: `850.000 ₫`) và hiển thị trực quan.
    - Biểu đồ phân bổ tỷ lệ phần trăm (%) trực quan sinh động giữa các thành viên.
-   - Bảng kê chi tiết từng người với công thức chuẩn xác:
-     $$\text{Tiền thành viên} = \frac{\text{Tiền cả phòng}}{\text{Tổng giờ cả phòng}} \times \text{Tổng giờ thành viên}$$
+   - Bảng kê chi tiết từng người theo công thức chuẩn xác (tính theo giờ hoặc ngày tương ứng).
 
 5. **Giao diện hiện đại & Đa chế độ (Light/Dark Mode):**
    - Hỗ trợ cả 2 chế độ: **Giao diện Tối (Dark Mode)** và **Giao diện Sáng (Light Mode)** với nút gạt chuyển đổi mượt mà.
+   - Định dạng tiền tệ VNĐ chuẩn xác, ngăn cách 3 chữ số dễ nhìn ở mọi vị trí hiển thị.
    - Thiết kế Glassmorphism, animations tinh tế, tối ưu trải nghiệm trên cả điện thoại và máy tính.
 
 ---
