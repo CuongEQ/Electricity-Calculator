@@ -1,7 +1,10 @@
 import { 
   getMonthUsages, 
   getUserDaySlots, 
-  saveDaySlots, 
+  getUserDayUsage,
+  setDayUsageStatus,
+  saveDaySlots,
+  extractDayUsage,
   getRoomById 
 } from './storage-service.js';
 import { getCurrentUser } from './auth.js';
@@ -68,32 +71,47 @@ export async function renderCalendarView() {
   const monthKey = getViewingMonthKey();
   currentMonthUsages = await getMonthUsages(room.id, monthKey);
 
-  // Tính toán tổng số giờ cá nhân và cả phòng trong tháng
-  let myTotalMonthHours = 0;
-  let roomTotalMonthHours = 0;
+  // Chế độ tính toán: 'hours' hoặc 'days'
+  const calcMode = (room.monthlyCalcModes && room.monthlyCalcModes[monthKey]) || 'hours';
+  const isDayMode = calcMode === 'days';
 
-  // Format of usages: { [userId]: { [dateStr]: [ { start, end, hours } ] } }
+  // Tính toán tổng số giờ hoặc tổng số ngày cá nhân và cả phòng trong tháng
+  let myTotalUsage = 0;
+  let roomTotalUsage = 0;
+
   Object.keys(currentMonthUsages).forEach(uId => {
     const userDays = currentMonthUsages[uId] || {};
     let uTotal = 0;
-    Object.keys(userDays).forEach(dKey => {
-      const slots = userDays[dKey] || [];
-      slots.forEach(s => {
-        uTotal += (s.hours || 0);
-      });
-    });
 
-    roomTotalMonthHours += uTotal;
+    if (isDayMode) {
+      // Đếm số ngày có sử dụng
+      Object.keys(userDays).forEach(dKey => {
+        const usage = extractDayUsage(userDays[dKey]);
+        if (usage.used || (usage.slots && usage.slots.length > 0)) {
+          uTotal += 1;
+        }
+      });
+    } else {
+      // Đếm tổng số giờ
+      Object.keys(userDays).forEach(dKey => {
+        const usage = extractDayUsage(userDays[dKey]);
+        usage.slots.forEach(s => {
+          uTotal += (s.hours || 0);
+        });
+      });
+    }
+
+    roomTotalUsage += uTotal;
     if (uId === user.id) {
-      myTotalMonthHours = uTotal;
+      myTotalUsage = uTotal;
     }
   });
 
   // Tính số tiền cần trả nếu Quản lý đã nhập tiền điện tháng này
   const monthlyBill = (room.monthlyBills && room.monthlyBills[monthKey]) ? room.monthlyBills[monthKey] : null;
   let estimatedMyBill = null;
-  if (monthlyBill !== null && roomTotalMonthHours > 0) {
-    estimatedMyBill = (monthlyBill / roomTotalMonthHours) * myTotalMonthHours;
+  if (monthlyBill !== null && roomTotalUsage > 0) {
+    estimatedMyBill = (monthlyBill / roomTotalUsage) * myTotalUsage;
   }
 
   // Tên tháng tiếng Việt
@@ -108,18 +126,30 @@ export async function renderCalendarView() {
       <!-- Thống kê tổng quan tháng ở góc trên -->
       <div class="metrics-row">
         <div class="metric-card">
-          <div class="metric-icon-box metric-icon-primary">⏱️</div>
+          <div class="metric-icon-box metric-icon-primary">
+            ${isDayMode ? '📅' : '⏱️'}
+          </div>
           <div class="metric-info">
-            <span class="metric-label">Giờ bạn sử dụng (${monthNames[viewingMonth]})</span>
-            <span class="metric-value mono">${formatHours(myTotalMonthHours)}</span>
+            <span class="metric-label">
+              ${isDayMode ? `Số ngày bạn dùng (${monthNames[viewingMonth]})` : `Giờ bạn sử dụng (${monthNames[viewingMonth]})`}
+            </span>
+            <span class="metric-value mono">
+              ${isDayMode ? `${myTotalUsage} ngày` : formatHours(myTotalUsage)}
+            </span>
           </div>
         </div>
 
         <div class="metric-card">
-          <div class="metric-icon-box metric-icon-success">⚡</div>
+          <div class="metric-icon-box metric-icon-success">
+            ${isDayMode ? '👥' : '⚡'}
+          </div>
           <div class="metric-info">
-            <span class="metric-label">Tổng giờ cả phòng</span>
-            <span class="metric-value mono">${formatHours(roomTotalMonthHours)}</span>
+            <span class="metric-label">
+              ${isDayMode ? 'Tổng ngày cả phòng' : 'Tổng giờ cả phòng'}
+            </span>
+            <span class="metric-value mono">
+              ${isDayMode ? `${roomTotalUsage} ngày` : formatHours(roomTotalUsage)}
+            </span>
           </div>
         </div>
 
@@ -134,12 +164,17 @@ export async function renderCalendarView() {
         </div>
       </div>
 
-      <!-- Lưới lịch biểu & Bảng khai báo giờ -->
+      <!-- Lưới lịch biểu & Bảng khai báo -->
       <div class="calendar-layout">
         <!-- Calendar Main Grid -->
         <div class="calendar-card">
           <div class="calendar-nav">
-            <h3 class="calendar-month-title">${monthLabel}</h3>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h3 class="calendar-month-title">${monthLabel}</h3>
+              <span class="badge ${isDayMode ? 'badge-primary' : 'badge-success'}" style="font-size: 0.725rem;">
+                ${isDayMode ? '📅 Tính theo Ngày' : '⏱️ Tính theo Giờ'}
+              </span>
+            </div>
             <div class="calendar-nav-controls">
               <button class="btn btn-secondary btn-icon" id="cal-prev-month" title="Tháng trước">◀</button>
               <button class="btn btn-secondary btn-sm" id="cal-today-btn">Hôm nay</button>
@@ -165,10 +200,10 @@ export async function renderCalendarView() {
   `;
 
   // Render các ô ngày trong tháng
-  renderCalendarDaysGrid(user.id);
+  renderCalendarDaysGrid(user.id, isDayMode);
 
   // Render chi tiết ngày đang chọn
-  await renderDayDetail(user.id, room.id);
+  await renderDayDetail(user.id, room.id, isDayMode);
 
   // Gắn sự kiện chuyển tháng
   document.getElementById('cal-prev-month')?.addEventListener('click', () => {
@@ -198,11 +233,11 @@ export async function renderCalendarView() {
   });
 }
 
-function renderCalendarDaysGrid(userId) {
+function renderCalendarDaysGrid(userId, isDayMode) {
   const grid = document.getElementById('calendar-days-grid');
   if (!grid) return;
 
-  const firstDayOfWeek = new Date(viewingYear, viewingMonth, 1).getDay(); // 0 = CN, 1 = T2,...
+  const firstDayOfWeek = new Date(viewingYear, viewingMonth, 1).getDay();
   const totalDaysInMonth = new Date(viewingYear, viewingMonth + 1, 0).getDate();
 
   const todayStr = formatDateKey(new Date());
@@ -225,9 +260,11 @@ function renderCalendarDaysGrid(userId) {
     const isSelected = dateKey === selectedDateStr;
     const isFuture = dateKey > todayStr;
 
-    const daySlots = userMonthData[dateKey] || [];
+    const dayUsage = extractDayUsage(userMonthData[dateKey]);
+    const isUsed = dayUsage.used || (dayUsage.slots && dayUsage.slots.length > 0);
+
     let dayHours = 0;
-    daySlots.forEach(s => dayHours += (s.hours || 0));
+    dayUsage.slots.forEach(s => dayHours += (s.hours || 0));
 
     let classes = ['calendar-day'];
     if (isToday) classes.push('day-today');
@@ -240,9 +277,11 @@ function renderCalendarDaysGrid(userId) {
           <span class="day-number">${day}</span>
           ${isToday ? '<span style="font-size: 0.65rem; color: var(--accent-secondary); font-weight: 700;">HÔM NAY</span>' : ''}
         </div>
-        ${dayHours > 0 ? `
-          <div class="day-badge mono">${formatHours(dayHours)}</div>
-        ` : ''}
+        ${isDayMode ? (
+          isUsed ? `<div class="day-badge mono" style="background: var(--accent-success);">✓ Đã dùng</div>` : ''
+        ) : (
+          dayHours > 0 ? `<div class="day-badge mono">${formatHours(dayHours)}</div>` : ''
+        )}
       </div>
     `;
   }
@@ -262,13 +301,13 @@ function renderCalendarDaysGrid(userId) {
       const user = getCurrentUser();
       const room = getCurrentRoom();
       if (user && room) {
-        await renderDayDetail(user.id, room.id);
+        await renderDayDetail(user.id, room.id, isDayMode);
       }
     });
   });
 }
 
-async function renderDayDetail(userId, roomId) {
+async function renderDayDetail(userId, roomId, isDayMode) {
   const panel = document.getElementById('day-detail-panel');
   if (!panel || !selectedDateStr) return;
 
@@ -277,9 +316,79 @@ async function renderDayDetail(userId, roomId) {
   const dayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
   const formattedDateTitle = `${dayNames[dateObj.getDay()]}, ${d}/${m}/${y}`;
 
-  // Lấy danh sách khung giờ của ngày này
-  currentDaySlots = await getUserDaySlots(roomId, userId, selectedDateStr);
-  
+  const todayStr = formatDateKey(new Date());
+  const isFuture = selectedDateStr > todayStr;
+
+  // Lấy dữ liệu ngày này
+  const dayUsage = await getUserDayUsage(roomId, userId, selectedDateStr);
+  const isUsed = dayUsage.used || (dayUsage.slots && dayUsage.slots.length > 0);
+
+  // Nếu chế độ TÍNH THEO NGÀY
+  if (isDayMode) {
+    panel.innerHTML = `
+      <div class="day-panel-header">
+        <div>
+          <h4 class="day-panel-title">${formattedDateTitle}</h4>
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+            Chế độ: <strong>Tính theo Ngày</strong>
+          </div>
+        </div>
+        <div class="day-total-tag mono" style="${isUsed ? 'color: var(--accent-success); background: var(--accent-success-bg);' : 'color: var(--text-muted); background: var(--bg-input);'}">
+          ${isUsed ? '✓ Đã xác nhận' : '— Chưa xác nhận'}
+        </div>
+      </div>
+
+      <!-- Card xác nhận sử dụng điện theo ngày -->
+      <div class="card" style="background: var(--bg-input); border: 1px solid var(--border-subtle); padding: 28px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 16px;">
+        <div style="font-size: 3rem; animation: pulse 2s infinite;">
+          ${isUsed ? '⚡' : '💤'}
+        </div>
+        <div>
+          <div style="font-weight: 700; font-size: 1.15rem; color: var(--text-primary);">
+            ${isUsed ? 'Bạn đã xác nhận có dùng điện trong ngày' : 'Bạn chưa xác nhận sử dụng điện'}
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 6px; max-width: 280px;">
+            ${isUsed 
+              ? 'Ngày này được tính là 1 ngày sử dụng điện của bạn trong tháng.' 
+              : (isFuture ? 'Không thể xác nhận ngày trong tương lai.' : 'Nếu bạn có ở phòng hoặc sử dụng điện vào ngày này, hãy nhấn nút bên dưới.')}
+          </p>
+        </div>
+
+        <button 
+          type="button" 
+          id="btn-toggle-day-usage" 
+          class="btn ${isUsed ? 'btn-secondary' : 'btn-primary'}"
+          style="width: 100%; max-width: 260px;"
+          ${isFuture ? 'disabled' : ''}
+        >
+          ${isUsed ? '❌ Hủy xác nhận sử dụng' : '✅ Xác nhận có sử dụng điện'}
+        </button>
+      </div>
+
+      <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; line-height: 1.4;">
+        💡 Ở chế độ tính theo ngày, bạn chỉ cần bấm xác nhận ngày có ở phòng mà không cần nhập chi tiết giờ.
+      </div>
+    `;
+
+    document.getElementById('btn-toggle-day-usage')?.addEventListener('click', async () => {
+      if (isFuture) {
+        showToast('Không thể xác nhận cho ngày trong tương lai!', 'error');
+        return;
+      }
+      const nextState = !isUsed;
+      await setDayUsageStatus(roomId, userId, selectedDateStr, nextState);
+      showToast(
+        nextState ? `Đã xác nhận sử dụng điện ngày ${d}/${m}/${y}` : `Đã hủy xác nhận ngày ${d}/${m}/${y}`,
+        nextState ? 'success' : 'info'
+      );
+      await renderCalendarView();
+    });
+
+    return;
+  }
+
+  // Nếu chế độ TÍNH THEO GIỜ
+  currentDaySlots = dayUsage.slots || [];
   let dayTotalHours = 0;
   currentDaySlots.forEach(s => dayTotalHours += (s.hours || 0));
 
@@ -287,7 +396,9 @@ async function renderDayDetail(userId, roomId) {
     <div class="day-panel-header">
       <div>
         <h4 class="day-panel-title">${formattedDateTitle}</h4>
-        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Khai báo khung giờ dùng điện</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+          Chế độ: <strong>Tính theo Giờ</strong> (HH:MM - HH:MM)
+        </div>
       </div>
       <div class="day-total-tag mono">Tổng: ${formatHours(dayTotalHours)}</div>
     </div>

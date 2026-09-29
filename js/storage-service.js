@@ -366,9 +366,71 @@ export async function updateMonthlyBill(roomId, monthKey, amount) {
   return room;
 }
 
+export async function clearMonthUsages(roomId, monthKey) {
+  if (useFirebase && db) {
+    const { collection, query, where, getDocs, deleteDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const q = query(
+      collection(db, 'usages'),
+      where('roomId', '==', roomId),
+      where('month', '==', monthKey)
+    );
+    const snap = await getDocs(q);
+    const deletePromises = [];
+    snap.forEach(docSnap => {
+      deletePromises.push(deleteDoc(doc(db, 'usages', docSnap.id)));
+    });
+    await Promise.all(deletePromises);
+  } else {
+    const usages = getLocal('usages', {});
+    if (usages[roomId] && usages[roomId][monthKey]) {
+      usages[roomId][monthKey] = {};
+      setLocal('usages', usages);
+    }
+  }
+}
+
+export async function updateMonthlyCalcMode(roomId, monthKey, mode, resetData = true) {
+  // mode: 'hours' | 'days'
+  const validMode = mode === 'days' ? 'days' : 'hours';
+  const room = await getRoomById(roomId);
+  if (!room) throw new Error('Không tìm thấy phòng!');
+
+  if (!room.monthlyCalcModes) room.monthlyCalcModes = {};
+  room.monthlyCalcModes[monthKey] = validMode;
+
+  if (useFirebase && db) {
+    const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await updateDoc(doc(db, 'rooms', roomId), {
+      [`monthlyCalcModes.${monthKey}`]: validMode
+    });
+  } else {
+    const rooms = getLocal('rooms', {});
+    rooms[roomId] = room;
+    setLocal('rooms', rooms);
+  }
+
+  // Xoá toàn bộ dữ liệu đã nhập trước đó trong tháng được chọn
+  if (resetData) {
+    await clearMonthUsages(roomId, monthKey);
+  }
+
+  return room;
+}
+
 /* ==========================================================================
    USAGE RECORDS OPERATIONS
    ========================================================================== */
+
+export function extractDayUsage(dayData) {
+  if (!dayData) return { used: false, slots: [] };
+  if (Array.isArray(dayData)) {
+    return { used: dayData.length > 0, slots: dayData };
+  }
+  return {
+    used: Boolean(dayData.used),
+    slots: Array.isArray(dayData.slots) ? dayData.slots : []
+  };
+}
 
 export async function getMonthUsages(roomId, monthKey) {
   // monthKey format: "YYYY-MM" (e.g. "2026-09")
@@ -396,10 +458,46 @@ export async function getUserDaySlots(roomId, userId, dateStr) {
   const monthKey = dateStr.substring(0, 7); // "YYYY-MM"
   const monthData = await getMonthUsages(roomId, monthKey);
   const userMonth = monthData[userId] || {};
-  return userMonth[dateStr] || [];
+  const dayData = userMonth[dateStr];
+  return extractDayUsage(dayData).slots;
+}
+
+export async function getUserDayUsage(roomId, userId, dateStr) {
+  const monthKey = dateStr.substring(0, 7);
+  const monthData = await getMonthUsages(roomId, monthKey);
+  const userMonth = monthData[userId] || {};
+  return extractDayUsage(userMonth[dateStr]);
 }
 
 export async function saveDaySlots(roomId, userId, dateStr, slots) {
+  const monthKey = dateStr.substring(0, 7);
+  const payload = {
+    used: slots.length > 0,
+    slots: slots
+  };
+
+  if (useFirebase && db) {
+    const { doc, setDoc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const docId = `${roomId}_${monthKey}_${userId}`;
+    const docRef = doc(db, 'usages', docId);
+    const snap = await getDoc(docRef);
+    let currentData = snap.exists() ? snap.data() : { roomId, month: monthKey, userId, days: {} };
+    if (!currentData.days) currentData.days = {};
+    currentData.days[dateStr] = payload;
+
+    await setDoc(docRef, currentData);
+  } else {
+    const usages = getLocal('usages', {});
+    if (!usages[roomId]) usages[roomId] = {};
+    if (!usages[roomId][monthKey]) usages[roomId][monthKey] = {};
+    if (!usages[roomId][monthKey][userId]) usages[roomId][monthKey][userId] = {};
+    
+    usages[roomId][monthKey][userId][dateStr] = payload;
+    setLocal('usages', usages);
+  }
+}
+
+export async function setDayUsageStatus(roomId, userId, dateStr, isUsed) {
   const monthKey = dateStr.substring(0, 7);
 
   if (useFirebase && db) {
@@ -409,7 +507,11 @@ export async function saveDaySlots(roomId, userId, dateStr, slots) {
     const snap = await getDoc(docRef);
     let currentData = snap.exists() ? snap.data() : { roomId, month: monthKey, userId, days: {} };
     if (!currentData.days) currentData.days = {};
-    currentData.days[dateStr] = slots;
+    const existing = extractDayUsage(currentData.days[dateStr]);
+    currentData.days[dateStr] = {
+      used: isUsed,
+      slots: existing.slots
+    };
 
     await setDoc(docRef, currentData);
   } else {
@@ -418,7 +520,11 @@ export async function saveDaySlots(roomId, userId, dateStr, slots) {
     if (!usages[roomId][monthKey]) usages[roomId][monthKey] = {};
     if (!usages[roomId][monthKey][userId]) usages[roomId][monthKey][userId] = {};
     
-    usages[roomId][monthKey][userId][dateStr] = slots;
+    const existing = extractDayUsage(usages[roomId][monthKey][userId][dateStr]);
+    usages[roomId][monthKey][userId][dateStr] = {
+      used: isUsed,
+      slots: existing.slots
+    };
     setLocal('usages', usages);
   }
 }

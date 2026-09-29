@@ -1,6 +1,8 @@
 import { 
   getMonthUsages, 
   updateMonthlyBill, 
+  updateMonthlyCalcMode,
+  extractDayUsage,
   getUserById 
 } from './storage-service.js';
 import { getCurrentUser } from './auth.js';
@@ -52,7 +54,7 @@ export async function renderStatsView() {
         <div style="font-size: 3rem; margin-bottom: 16px;">🔒</div>
         <h3 style="font-size: 1.35rem; margin-bottom: 8px;">Khu vực dành cho Quản lý phòng</h3>
         <p style="color: var(--text-muted); max-width: 480px; margin: 0 auto;">
-          Chỉ người quản trị phòng (${room.name}) mới có quyền nhập hóa đơn tiền điện cả phòng và xem phân bổ chi tiết của toàn bộ thành viên.
+          Chỉ người quản trị phòng (${room.name}) mới có quyền nhập hóa đơn tiền điện cả phòng, cấu hình cách tính (ngày/giờ) và xem phân bổ chi tiết của toàn bộ thành viên.
         </p>
       </div>
     `;
@@ -62,7 +64,11 @@ export async function renderStatsView() {
   const monthKey = getStatsMonthKey();
   const usages = await getMonthUsages(room.id, monthKey);
 
-  // Lấy danh sách thành viên và tính giờ của từng người
+  // Chế độ tính toán của tháng: 'hours' (mặc định) hoặc 'days'
+  const calcMode = (room.monthlyCalcModes && room.monthlyCalcModes[monthKey]) || 'hours';
+  const isDayMode = calcMode === 'days';
+
+  // Lấy danh sách thành viên
   const memberList = await Promise.all(
     room.members.map(async (mId) => {
       const u = await getUserById(mId);
@@ -70,19 +76,33 @@ export async function renderStatsView() {
     })
   );
 
-  let totalRoomHours = 0;
+  let totalRoomUsage = 0; // Tổng giờ hoặc tổng ngày cả phòng
   const memberStats = memberList.map((m, idx) => {
     const userDays = usages[m.id] || {};
-    let userHours = 0;
-    Object.keys(userDays).forEach(dKey => {
-      const slots = userDays[dKey] || [];
-      slots.forEach(s => userHours += (s.hours || 0));
-    });
+    let memberValue = 0;
 
-    totalRoomHours += userHours;
+    if (isDayMode) {
+      // Đếm số ngày có sử dụng điện
+      Object.keys(userDays).forEach(dKey => {
+        const usage = extractDayUsage(userDays[dKey]);
+        if (usage.used || (usage.slots && usage.slots.length > 0)) {
+          memberValue += 1;
+        }
+      });
+    } else {
+      // Đếm tổng số giờ sử dụng
+      Object.keys(userDays).forEach(dKey => {
+        const usage = extractDayUsage(userDays[dKey]);
+        usage.slots.forEach(s => {
+          memberValue += (s.hours || 0);
+        });
+      });
+    }
+
+    totalRoomUsage += memberValue;
     return {
       user: m,
-      hours: userHours,
+      value: memberValue,
       color: PALETTE[idx % PALETTE.length]
     };
   });
@@ -92,9 +112,9 @@ export async function renderStatsView() {
 
   // Tính tiền & phần trăm từng thành viên
   const calculatedStats = memberStats.map(item => {
-    const percentage = totalRoomHours > 0 ? (item.hours / totalRoomHours) * 100 : 0;
-    // Công thức: Tiền điện mỗi thành viên = Tiền điện cả phòng / Tổng giờ cả phòng * Tổng giờ mỗi thành viên
-    const billToPay = totalRoomHours > 0 ? (currentBill / totalRoomHours) * item.hours : 0;
+    const percentage = totalRoomUsage > 0 ? (item.value / totalRoomUsage) * 100 : 0;
+    // Công thức: Tiền mỗi người = (Tiền cả phòng / Tổng đơn vị cả phòng) * Đơn vị mỗi người
+    const billToPay = totalRoomUsage > 0 ? (currentBill / totalRoomUsage) * item.value : 0;
 
     return {
       ...item,
@@ -120,6 +140,39 @@ export async function renderStatsView() {
           <button class="btn btn-secondary btn-icon" id="stats-prev-month">◀</button>
           <span style="font-weight: 700; font-size: 1.05rem; padding: 0 8px;">${monthTitle}</span>
           <button class="btn btn-secondary btn-icon" id="stats-next-month">▶</button>
+        </div>
+      </div>
+
+      <!-- Cấu hình Chế độ tính tiền tháng (Theo Giờ hoặc Theo Ngày) -->
+      <div class="card" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 18px 24px; border-left: 4px solid var(--accent-primary);">
+        <div>
+          <div style="font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+            <span>⚙️</span> Phương thức tính tiền: <span class="text-gradient">${monthTitle}</span>
+          </div>
+          <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 3px;">
+            ${isDayMode 
+              ? '📅 <strong>Tính theo Ngày:</strong> Mỗi ngày thành viên có sử dụng tính là 1 ngày.' 
+              : '⏱️ <strong>Tính theo Giờ:</strong> Tính chi tiết theo khoảng thời gian thực tế khai báo.'}
+          </div>
+        </div>
+
+        <div style="display: flex; background: var(--bg-input); padding: 4px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+          <button 
+            type="button" 
+            id="btn-mode-hours" 
+            class="btn btn-sm ${!isDayMode ? 'btn-primary' : 'btn-ghost'}"
+            style="border-radius: var(--radius-sm);"
+          >
+            ⏱️ Tính theo Giờ
+          </button>
+          <button 
+            type="button" 
+            id="btn-mode-days" 
+            class="btn btn-sm ${isDayMode ? 'btn-primary' : 'btn-ghost'}"
+            style="border-radius: var(--radius-sm);"
+          >
+            📅 Tính theo Ngày
+          </button>
         </div>
       </div>
 
@@ -154,15 +207,17 @@ export async function renderStatsView() {
       <!-- Biểu đồ phân bổ tỷ lệ phần trăm sử dụng điện -->
       <div class="distribution-card">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h3 style="font-size: 1.1rem; font-weight: 700;">Phân bố phần trăm sử dụng điện</h3>
+          <h3 style="font-size: 1.1rem; font-weight: 700;">
+            Phân bố phần trăm sử dụng điện (${isDayMode ? 'Theo ngày' : 'Theo giờ'})
+          </h3>
           <span class="mono" style="font-size: 0.9rem; color: var(--text-secondary);">
-            Tổng: <strong>${formatHours(totalRoomHours)}</strong> (${totalRoomHours.toFixed(1)}h)
+            Tổng cả phòng: <strong>${isDayMode ? `${totalRoomUsage} ngày` : `${formatHours(totalRoomUsage)} (${totalRoomUsage.toFixed(1)}h)`}</strong>
           </span>
         </div>
 
-        ${totalRoomHours === 0 ? `
+        ${totalRoomUsage === 0 ? `
           <div style="padding: 24px; text-align: center; color: var(--text-muted); background: var(--bg-input); border-radius: var(--radius-md);">
-            Chưa có thành viên nào khai báo giờ trong tháng này.
+            Chưa có thành viên nào khai báo dữ liệu trong tháng này.
           </div>
         ` : `
           <!-- Thanh phân bổ tỷ lệ -->
@@ -171,7 +226,7 @@ export async function renderStatsView() {
               <div 
                 class="dist-segment" 
                 style="width: ${item.percentage}%; background-color: ${item.color};"
-                title="${item.user.displayName}: ${item.percentage.toFixed(1)}% (${formatHours(item.hours)})"
+                title="${item.user.displayName}: ${item.percentage.toFixed(1)}% (${isDayMode ? `${item.value} ngày` : formatHours(item.value)})"
               ></div>
             `).join('')}
           </div>
@@ -181,7 +236,7 @@ export async function renderStatsView() {
             ${calculatedStats.map(item => `
               <div class="legend-item">
                 <span class="legend-color-dot" style="background-color: ${item.color};"></span>
-                <span>${item.user.displayName}: <strong>${item.percentage.toFixed(1)}%</strong></span>
+                <span>${item.user.displayName}: <strong>${item.percentage.toFixed(1)}%</strong> (${isDayMode ? `${item.value} ngày` : formatHours(item.value)})</span>
               </div>
             `).join('')}
           </div>
@@ -194,7 +249,7 @@ export async function renderStatsView() {
           <thead>
             <tr>
               <th>Thành viên</th>
-              <th>Tổng giờ sử dụng</th>
+              <th>${isDayMode ? 'Tổng ngày sử dụng' : 'Tổng giờ sử dụng'}</th>
               <th>Tỉ lệ %</th>
               <th style="text-align: right;">Tiền điện phải trả</th>
             </tr>
@@ -214,7 +269,7 @@ export async function renderStatsView() {
                   </div>
                 </td>
                 <td class="mono">
-                  ${formatHours(item.hours)} <span style="color: var(--text-muted); font-size: 0.85rem;">(${item.hours.toFixed(1)}h)</span>
+                  ${isDayMode ? `<strong>${item.value}</strong> ngày` : `${formatHours(item.value)} <span style="color: var(--text-muted); font-size: 0.85rem;">(${item.value.toFixed(1)}h)</span>`}
                 </td>
                 <td>
                   <span class="rate-badge">${item.percentage.toFixed(1)}%</span>
@@ -228,7 +283,9 @@ export async function renderStatsView() {
             <!-- Hàng tổng cộng -->
             <tr class="total-row">
               <td>TỔNG CỘNG CẢ PHÒNG</td>
-              <td class="mono">${formatHours(totalRoomHours)} (${totalRoomHours.toFixed(1)}h)</td>
+              <td class="mono">
+                ${isDayMode ? `<strong>${totalRoomUsage}</strong> ngày` : `${formatHours(totalRoomUsage)} (${totalRoomUsage.toFixed(1)}h)`}
+              </td>
               <td>100.0%</td>
               <td style="text-align: right;" class="mono amount-highlight">
                 ${formatVND(currentBill)}
@@ -240,11 +297,34 @@ export async function renderStatsView() {
 
       <!-- Công thức minh bạch -->
       <div style="padding: 16px 20px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); font-size: 0.85rem; color: var(--text-muted);">
-        💡 <strong>Công thức tính tiền:</strong> 
-        <code>Tiền mỗi người = (Tiền điện cả phòng / Tổng giờ cả phòng) × Tổng giờ mỗi người</code>
+        💡 <strong>Công thức tính tiền ${isDayMode ? '(theo ngày)' : '(theo giờ)'}:</strong> 
+        <code>Tiền mỗi người = (Tiền điện cả phòng / Tổng ${isDayMode ? 'ngày' : 'giờ'} cả phòng) × Tổng ${isDayMode ? 'ngày' : 'giờ'} mỗi người</code>
       </div>
     </div>
   `;
+
+  // Gắn sự kiện đổi chế độ tính tiền
+  document.getElementById('btn-mode-hours')?.addEventListener('click', async () => {
+    if (!isDayMode) return;
+    try {
+      await updateMonthlyCalcMode(room.id, monthKey, 'hours');
+      showToast(`Đã chuyển cách tính tháng ${monthTitle} sang: Tính theo Giờ`, 'info');
+      await renderStatsView();
+    } catch (err) {
+      showToast(err.message || 'Lỗi khi chuyển chế độ tính!', 'error');
+    }
+  });
+
+  document.getElementById('btn-mode-days')?.addEventListener('click', async () => {
+    if (isDayMode) return;
+    try {
+      await updateMonthlyCalcMode(room.id, monthKey, 'days');
+      showToast(`Đã chuyển cách tính tháng ${monthTitle} sang: Tính theo Ngày`, 'success');
+      await renderStatsView();
+    } catch (err) {
+      showToast(err.message || 'Lỗi khi chuyển chế độ tính!', 'error');
+    }
+  });
 
   // Gắn sự kiện lưu hóa đơn
   document.getElementById('form-update-bill')?.addEventListener('submit', async (e) => {
