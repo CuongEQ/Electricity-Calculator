@@ -55,12 +55,12 @@ export async function loadFirebaseConfig() {
 
   // Mặc định rỗng (chuyển sang LocalStorage fallback)
   cachedConfig = {
-    apiKey: "AIzaSyCwIRgcX7WQQI2pNMNlGqEr74uwWFfZSa8",
-    authDomain: "electricity-calculator-e7393.firebaseapp.com",
+    apiKey: "",
+    authDomain: "",
     projectId: "electricity-calculator-e7393",
-    storageBucket: "electricity-calculator-e7393.firebasestorage.app",
-    messagingSenderId: "790805731205",
-    appId: "1:790805731205:web:5de9786f9c3f255248d6ec"
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
   };
   return cachedConfig;
 }
