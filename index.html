@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Electricity Calculator — Tính Tiền Điện Phòng Trọ Thông Minh</title>
+  <meta name="description" content="Trang web tính tiền điện công bằng và minh bạch theo giờ sử dụng cho từng thành viên trong phòng trọ, căn hộ chia sẻ." />
+  
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/calendar.css" />
+  <link rel="stylesheet" href="css/room.css" />
+  <link rel="stylesheet" href="css/stats.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Toast Notifications Container -->
+    <div id="toast-container"></div>
+
+    <!-- ======================================================================
+         1. Auth View (Đăng ký / Đăng nhập)
+         ====================================================================== -->
+    <main id="auth-view" class="auth-view">
+      <!-- Nút đổi Light/Dark mode góc trên phải Auth -->
+      <div style="position: absolute; top: 24px; right: 24px; z-index: 10;">
+        <button class="theme-switch-btn" title="Chuyển chế độ sáng/tối">
+          <span class="theme-icon-sun">☀️</span>
+          <span class="theme-icon-moon">🌙</span>
+        </button>
+      </div>
+
+      <div class="auth-card animate-scale">
+        <header class="auth-header">
+          <div class="auth-logo">⚡</div>
+          <h1 class="auth-title">Electricity Calculator</h1>
+          <p class="auth-subtitle">Tính tiền điện công bằng theo thời gian sử dụng thực tế</p>
+        </header>
+
+        <!-- Tabs chuyển đổi Đăng nhập / Đăng ký -->
+        <div class="auth-tabs">
+          <button type="button" id="tab-btn-login" class="auth-tab-btn active">Đăng nhập</button>
+          <button type="button" id="tab-btn-register" class="auth-tab-btn">Đăng ký</button>
+        </div>
+
+        <!-- Form Đăng nhập -->
+        <form id="form-login" class="auth-form animate-fade">
+          <div class="form-group">
+            <label class="form-label" for="login-username">Tên đăng nhập</label>
+            <input type="text" id="login-username" class="form-input" placeholder="Nhập tên đăng nhập..." required autocomplete="username" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="login-password">Mật khẩu</label>
+            <input type="password" id="login-password" class="form-input" placeholder="Nhập mật khẩu..." required autocomplete="current-password" />
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+            Đăng nhập ngay
+          </button>
+        </form>
+
+        <!-- Form Đăng ký -->
+        <form id="form-register" class="auth-form hidden animate-fade">
+          <div class="form-group">
+            <label class="form-label" for="reg-username">Tên đăng nhập</label>
+            <input type="text" id="reg-username" class="form-input" placeholder="Chỉ chữ và số (VD: minhduc21)..." required minlength="3" autocomplete="username" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg-display-name">Tên hiển thị</label>
+            <input type="text" id="reg-display-name" class="form-input" placeholder="Tên của bạn (VD: Minh Đức)..." required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg-password">Mật khẩu</label>
+            <input type="password" id="reg-password" class="form-input" placeholder="Tối thiểu 6 ký tự..." required minlength="6" autocomplete="new-password" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg-confirm-password">Xác nhận mật khẩu</label>
+            <input type="password" id="reg-confirm-password" class="form-input" placeholder="Nhập lại mật khẩu..." required minlength="6" autocomplete="new-password" />
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+            Tạo tài khoản mới
+          </button>
+        </form>
+
+        <footer class="auth-footer">
+          <span>💡 Dữ liệu hỗ trợ đồng bộ đa thiết bị khi liên kết Firebase</span>
+        </footer>
+      </div>
+    </main>
+
+    <!-- ======================================================================
+         2. Main Application Layout (Sau khi đăng nhập)
+         ====================================================================== -->
+    <div id="app-layout" class="app-layout hidden">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo">⚡</div>
+          <div class="sidebar-brand">ElecCalc</div>
+        </div>
+
+        <nav class="sidebar-menu">
+          <div class="nav-item active" data-view="calendar">
+            <span class="nav-icon">📅</span>
+            <span>Lịch biểu & Giờ dùng</span>
+          </div>
+
+          <div class="nav-item" data-view="room">
+            <span class="nav-icon">🏠</span>
+            <span>Quản lý phòng</span>
+            <span id="pending-req-badge" class="badge badge-warning nav-badge hidden">0</span>
+          </div>
+
+          <div class="nav-item hidden" data-view="stats">
+            <span class="nav-icon">📊</span>
+            <span>Thống kê tiền điện</span>
+            <span class="badge badge-primary nav-badge" style="font-size: 0.65rem;">Admin</span>
+          </div>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="user-snippet">
+            <div class="avatar" id="sidebar-user-avatar">?</div>
+            <div class="user-snippet-info">
+              <span class="user-name" id="sidebar-user-name">Người dùng</span>
+              <span class="user-role" id="sidebar-user-role">Thành viên</span>
+            </div>
+          </div>
+
+          <button id="btn-logout" class="btn btn-ghost btn-sm" title="Đăng xuất" style="padding: 6px 8px;">
+            🚪
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <div class="main-wrapper">
+        <!-- Topbar -->
+        <header class="topbar">
+          <div class="topbar-left">
+            <h2 class="topbar-title">Bảng Điều Khiển</h2>
+            <div id="topbar-room-name" class="room-tag">Chưa vào phòng</div>
+          </div>
+
+          <div class="topbar-right">
+            <!-- Nút gạt Theme Light/Dark Mode -->
+            <button class="theme-switch-btn" title="Chuyển chế độ sáng/tối">
+              <span class="theme-icon-sun">☀️</span>
+              <span class="theme-icon-moon">🌙</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Content Body (Các màn hình) -->
+        <main class="content-body">
+          <!-- Màn hình 1: Lịch biểu -->
+          <section id="view-calendar" class="view-section active">
+            <div id="calendar-view-content"></div>
+          </section>
+
+          <!-- Màn hình 2: Quản lý phòng -->
+          <section id="view-room" class="view-section">
+            <div id="room-view-content"></div>
+          </section>
+
+          <!-- Màn hình 3: Thống kê & Tính tiền điện -->
+          <section id="view-stats" class="view-section">
+            <div id="stats-view-content"></div>
+          </section>
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main JavaScript App Entry -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

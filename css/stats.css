@@ -1,0 +1,139 @@
+.stats-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Bill Input Card */
+.bill-input-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+.bill-input-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bill-amount-input {
+  max-width: 240px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent-warning);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Distribution Progress Bar */
+.distribution-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dist-bar-wrapper {
+  height: 24px;
+  width: 100%;
+  border-radius: var(--radius-full);
+  background: var(--bg-input);
+  overflow: hidden;
+  display: flex;
+  border: 1px solid var(--border-subtle);
+}
+
+.dist-segment {
+  height: 100%;
+  transition: width 0.5s ease;
+  position: relative;
+}
+
+.dist-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.legend-color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+/* Stats Table */
+.stats-table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.stats-table th {
+  padding: 16px 20px;
+  background: var(--bg-input);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.stats-table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.stats-table tr:hover td {
+  background: var(--bg-card-hover);
+}
+
+.stats-table tr.total-row td {
+  font-weight: 800;
+  background: rgba(var(--accent-primary-rgb), 0.08);
+  border-top: 2px solid var(--accent-primary);
+  border-bottom: none;
+}
+
+.rate-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.amount-highlight {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: var(--accent-warning);
+  font-size: 1.05rem;
+}
