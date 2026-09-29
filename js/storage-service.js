@@ -345,6 +345,66 @@ export async function removeMemberFromRoom(roomId, targetUserId) {
   return room;
 }
 
+export async function deleteRoom(roomId) {
+  const room = await getRoomById(roomId);
+  if (!room) return;
+
+  if (useFirebase && db) {
+    const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await deleteDoc(doc(db, 'rooms', roomId));
+    if (room.code) {
+      await deleteDoc(doc(db, 'roomCodes', room.code));
+    }
+  } else {
+    const rooms = getLocal('rooms', {});
+    delete rooms[roomId];
+    setLocal('rooms', rooms);
+
+    // Dọn dẹp usage dữ liệu của phòng
+    const usages = getLocal('usages', {});
+    if (usages[roomId]) {
+      delete usages[roomId];
+      setLocal('usages', usages);
+    }
+  }
+}
+
+export async function leaveRoom(roomId, userId) {
+  const room = await getRoomById(roomId);
+  if (!room) throw new Error('Không tìm thấy phòng!');
+
+  // Loại bỏ khỏi danh sách thành viên
+  room.members = room.members.filter(id => id !== userId);
+
+  // Cập nhật roomId của user về null
+  await updateUser(userId, { roomId: null });
+
+  // Nếu phòng không còn ai, tự động xóa phòng
+  if (room.members.length === 0) {
+    await deleteRoom(roomId);
+    return null;
+  }
+
+  // Nếu người rời phòng là quản lý, tự động chuyển quyền cho người kế tiếp
+  if (room.adminId === userId) {
+    room.adminId = room.members[0];
+  }
+
+  if (useFirebase && db) {
+    const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await updateDoc(doc(db, 'rooms', roomId), {
+      members: room.members,
+      adminId: room.adminId
+    });
+  } else {
+    const rooms = getLocal('rooms', {});
+    rooms[roomId] = room;
+    setLocal('rooms', rooms);
+  }
+
+  return room;
+}
+
 export async function updateMonthlyBill(roomId, monthKey, amount) {
   const room = await getRoomById(roomId);
   if (!room) throw new Error('Không tìm thấy phòng!');

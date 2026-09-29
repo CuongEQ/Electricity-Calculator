@@ -5,7 +5,8 @@ import {
   getUserById,
   approveJoinRequest, 
   rejectJoinRequest, 
-  removeMemberFromRoom 
+  removeMemberFromRoom,
+  leaveRoom 
 } from './storage-service.js';
 import { getCurrentUser, refreshCurrentUser } from './auth.js';
 import { showToast, copyToClipboard, openModal, closeModal } from './ui.js';
@@ -105,6 +106,46 @@ export async function handleRemoveMember(userId) {
   }
 }
 
+export async function handleLeaveRoom() {
+  const user = getCurrentUser();
+  const room = getCurrentRoom();
+  if (!user || !room) return;
+
+  const isAdmin = room.adminId === user.id;
+  let confirmMsg = 'Bạn có chắc chắn muốn rời khỏi phòng này không?';
+
+  if (isAdmin) {
+    if (room.members.length > 1) {
+      confirmMsg = 'Bạn đang là Quản lý phòng. Khi bạn rời phòng, quyền Quản lý sẽ tự động chuyển giao cho thành viên kế tiếp trong danh sách. Bạn có chắc chắn muốn rời phòng không?';
+    } else {
+      confirmMsg = 'Bạn là thành viên duy nhất trong phòng. Khi bạn rời phòng, phòng này sẽ tự động bị xóa hoàn toàn. Bạn có chắc chắn muốn rời phòng không?';
+    }
+  }
+
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    await leaveRoom(room.id, user.id);
+    await refreshCurrentUser();
+    await fetchCurrentRoom();
+    showToast('Bạn đã rời phòng thành công!', 'info');
+
+    // Cập nhật lại topbar và menu sidebar
+    const roomTag = document.getElementById('topbar-room-name');
+    if (roomTag) roomTag.textContent = 'Chưa vào phòng';
+
+    const statsNavItem = document.querySelector('.nav-item[data-view="stats"]');
+    if (statsNavItem) statsNavItem.classList.add('hidden');
+
+    const roleEl = document.getElementById('sidebar-user-role');
+    if (roleEl) roleEl.textContent = 'Chưa vào phòng';
+
+    await renderRoomView();
+  } catch (err) {
+    showToast(err.message || 'Lỗi khi rời khỏi phòng!', 'error');
+  }
+}
+
 /**
  * Render Room View
  */
@@ -119,6 +160,22 @@ export async function renderRoomView() {
   const roomTag = document.getElementById('topbar-room-name');
   if (roomTag) {
     roomTag.textContent = room ? `🏠 ${room.name}` : 'Chưa vào phòng';
+  }
+
+  // Cập nhật vai trò trên sidebar
+  const roleEl = document.getElementById('sidebar-user-role');
+  if (roleEl) {
+    roleEl.textContent = room ? (room.adminId === user.id ? 'Quản lý phòng' : 'Thành viên') : 'Chưa vào phòng';
+  }
+
+  // Ẩn/Hiện tab Thống kê cho Admin
+  const statsNavItem = document.querySelector('.nav-item[data-view="stats"]');
+  if (statsNavItem) {
+    if (room && room.adminId === user.id) {
+      statsNavItem.classList.remove('hidden');
+    } else {
+      statsNavItem.classList.add('hidden');
+    }
   }
 
   // Trường hợp 1: Người dùng chưa có phòng
@@ -231,6 +288,10 @@ export async function renderRoomView() {
     `;
   }
 
+  // Lấy thông tin tài khoản Quản lý phòng
+  const adminMember = memberDetails.find(m => m.id === room.adminId);
+  const adminUsername = adminMember ? adminMember.username : (isAdmin ? user.username : 'admin');
+
   container.innerHTML = `
     <div class="room-container animate-fade">
       <!-- Header thông tin phòng -->
@@ -245,8 +306,14 @@ export async function renderRoomView() {
           </div>
           <div class="room-meta">
             <span>👥 Thành viên: <strong>${room.members.length} / ${room.maxMembers}</strong></span>
-            <span>👑 Quản lý: <strong>${isAdmin ? 'Bạn' : 'Quản trị viên'}</strong></span>
+            <span>👑 Quản lý: <strong>@${adminUsername}${isAdmin ? ' (Bạn)' : ''}</strong></span>
           </div>
+        </div>
+
+        <div>
+          <button id="btn-leave-room" class="btn btn-secondary btn-sm" style="color: var(--accent-danger); border-color: rgba(239, 68, 68, 0.35);" title="Rời khỏi phòng này">
+            🚪 Rời phòng
+          </button>
         </div>
       </div>
 
@@ -301,6 +368,9 @@ export async function renderRoomView() {
   document.getElementById('btn-copy-room-code')?.addEventListener('click', () => {
     copyToClipboard(room.code, `Đã sao chép mã phòng: ${room.code}`);
   });
+
+  // Gắn sự kiện rời phòng
+  document.getElementById('btn-leave-room')?.addEventListener('click', handleLeaveRoom);
 
   // Gắn sự kiện duyệt/từ chối
   container.querySelectorAll('.btn-approve').forEach(btn => {

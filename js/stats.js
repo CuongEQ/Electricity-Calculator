@@ -7,7 +7,7 @@ import {
 } from './storage-service.js';
 import { getCurrentUser } from './auth.js';
 import { getCurrentRoom, fetchCurrentRoom } from './room.js';
-import { formatVND, formatHours, showToast } from './ui.js';
+import { formatVND, formatHours, showToast, openModal, closeModal } from './ui.js';
 
 let statsYear = new Date().getFullYear();
 let statsMonth = new Date().getMonth(); // 0-indexed
@@ -303,27 +303,49 @@ export async function renderStatsView() {
     </div>
   `;
 
-  // Gắn sự kiện đổi chế độ tính tiền
-  document.getElementById('btn-mode-hours')?.addEventListener('click', async () => {
-    if (!isDayMode) return;
+  // Xử lý modal cảnh báo xác nhận chuyển đổi chế độ
+  const closeBtn = document.getElementById('btn-close-switch-modal');
+  const cancelBtn = document.getElementById('btn-cancel-switch-mode');
+  const confirmBtn = document.getElementById('btn-confirm-switch-mode');
+  const descEl = document.getElementById('switch-modal-desc');
+
+  let targetMode = null;
+  let targetText = '';
+
+  const triggerModal = (mode, text, fromText) => {
+    targetMode = mode;
+    targetText = text;
+    if (descEl) {
+      descEl.innerHTML = `Bạn đang yêu cầu chuyển đổi phương thức tính tiền của <strong>${monthTitle}</strong> từ <strong>${fromText}</strong> sang <strong>${targetText}</strong>.`;
+    }
+    openModal('modal-confirm-switch-mode');
+  };
+
+  closeBtn.onclick = () => closeModal('modal-confirm-switch-mode');
+  cancelBtn.onclick = () => closeModal('modal-confirm-switch-mode');
+
+  confirmBtn.onclick = async () => {
+    if (!targetMode) return;
+    closeModal('modal-confirm-switch-mode');
     try {
-      await updateMonthlyCalcMode(room.id, monthKey, 'hours');
-      showToast(`Đã chuyển cách tính tháng ${monthTitle} sang: Tính theo Giờ`, 'info');
+      // updateMonthlyCalcMode với resetData = true để xóa toàn bộ dữ liệu đã nhập trước đó trong tháng
+      await updateMonthlyCalcMode(room.id, monthKey, targetMode, true);
+      showToast(`Đã chuyển sang ${targetText} và làm mới dữ liệu tháng ${monthTitle}!`, 'success');
       await renderStatsView();
     } catch (err) {
-      showToast(err.message || 'Lỗi khi chuyển chế độ tính!', 'error');
+      showToast(err.message || 'Lỗi khi chuyển đổi cách tính!', 'error');
     }
+  };
+
+  // Gắn sự kiện mở modal chuyển chế độ
+  document.getElementById('btn-mode-hours')?.addEventListener('click', () => {
+    if (!isDayMode) return;
+    triggerModal('hours', 'Tính theo Giờ', 'Tính theo Ngày');
   });
 
-  document.getElementById('btn-mode-days')?.addEventListener('click', async () => {
+  document.getElementById('btn-mode-days')?.addEventListener('click', () => {
     if (isDayMode) return;
-    try {
-      await updateMonthlyCalcMode(room.id, monthKey, 'days');
-      showToast(`Đã chuyển cách tính tháng ${monthTitle} sang: Tính theo Ngày`, 'success');
-      await renderStatsView();
-    } catch (err) {
-      showToast(err.message || 'Lỗi khi chuyển chế độ tính!', 'error');
-    }
+    triggerModal('days', 'Tính theo Ngày', 'Tính theo Giờ');
   });
 
   // Gắn sự kiện lưu hóa đơn

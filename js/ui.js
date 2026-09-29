@@ -43,11 +43,21 @@ export function closeModal(modalId) {
 
 export function formatVND(amount) {
   if (amount === null || amount === undefined || isNaN(amount)) return '0 ₫';
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0
-  }).format(Math.round(amount));
+  const rounded = Math.round(amount);
+  return `${rounded.toLocaleString('vi-VN')} ₫`;
+}
+
+export function formatNumberWithSeparators(val) {
+  if (val === null || val === undefined || val === '') return '';
+  const numStr = String(val).replace(/\D/g, '');
+  if (!numStr) return '';
+  return Number(numStr).toLocaleString('vi-VN');
+}
+
+export function parseFormattedNumber(val) {
+  if (!val) return 0;
+  const numStr = String(val).replace(/\D/g, '');
+  return numStr ? parseInt(numStr, 10) : 0;
 }
 
 export function formatHours(hours) {

@@ -177,6 +177,28 @@
             <div id="stats-view-content"></div>
           </section>
         </main>
+  </div>
+
+  <!-- Modal Popup Cảnh báo & Xác nhận chuyển đổi chế độ tính -->
+  <div id="modal-confirm-switch-mode" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px; color: var(--accent-danger);">
+          <span>⚠️</span> Xác nhận đổi cách tính tiền điện
+        </h3>
+        <button type="button" class="modal-close-btn" id="btn-close-switch-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="switch-modal-desc" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-primary);"></p>
+        <div style="margin-top: 16px; padding: 14px 16px; background: var(--accent-danger-bg); border-radius: var(--radius-md); border: 1px solid rgba(239, 68, 68, 0.35); font-size: 0.85rem; color: var(--accent-danger); line-height: 1.5;">
+          <strong>🚨 Cảnh báo quan trọng:</strong> Khi chuyển đổi, <strong>toàn bộ dữ liệu khai báo giờ/ngày đã nhập trong tháng này của tất cả thành viên sẽ bị xóa hoàn toàn</strong> để đảm bảo tính toán đồng nhất và tránh lỗi số liệu!
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-switch-mode">Hủy bỏ</button>
+        <button type="button" class="btn btn-danger" id="btn-confirm-switch-mode">
+          Xác nhận chuyển đổi & Xóa dữ liệu cũ
+        </button>
       </div>
     </div>
   </div>
