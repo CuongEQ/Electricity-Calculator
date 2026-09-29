@@ -1,0 +1,312 @@
+/* ==========================================================================
+   Easter Egg Animation for "bezit" (🐄 & 🪿)
+   ========================================================================== */
+
+#bezit-easter-egg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 14, 26, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  user-select: none;
+}
+
+#bezit-easter-egg-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Fireworks Canvas */
+#bezit-fireworks-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Main Celebration Card */
+.bezit-card {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 40px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(254, 240, 245, 0.92) 100%);
+  border-radius: 28px;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(255, 105, 180, 0.35),
+    0 0 80px rgba(255, 215, 0, 0.25);
+  border: 2px solid rgba(255, 182, 193, 0.6);
+  max-width: 90vw;
+  width: 440px;
+  text-align: center;
+  transform: scale(0.7) translateY(30px);
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-theme="dark"] .bezit-card {
+  background: linear-gradient(135deg, rgba(30, 27, 46, 0.95) 0%, rgba(45, 25, 45, 0.92) 100%);
+  border: 2px solid rgba(255, 105, 180, 0.4);
+  box-shadow: 
+    0 25px 70px rgba(0, 0, 0, 0.6),
+    0 0 50px rgba(255, 105, 180, 0.4),
+    0 0 100px rgba(255, 215, 0, 0.2);
+}
+
+#bezit-easter-egg-overlay.active .bezit-card {
+  transform: scale(1) translateY(0);
+}
+
+/* Close button */
+.bezit-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.08);
+  color: #666;
+  font-size: 1.2rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 20;
+}
+
+[data-theme="dark"] .bezit-close-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #eee;
+}
+
+.bezit-close-btn:hover {
+  background: #ff477e;
+  color: #fff;
+  transform: rotate(90deg) scale(1.1);
+}
+
+/* Speech Bubble on Top */
+.bezit-speech-bubble {
+  position: relative;
+  background: linear-gradient(135deg, #ff6584, #ff8ba7);
+  color: #ffffff;
+  padding: 14px 24px;
+  border-radius: 20px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 8px 24px rgba(255, 101, 132, 0.4);
+  margin-bottom: 24px;
+  animation: bezitBubbleFloat 2.4s ease-in-out infinite;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.bezit-speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 10px 10px 0 10px;
+  border-style: solid;
+  border-color: #ff8ba7 transparent transparent transparent;
+}
+
+@keyframes bezitBubbleFloat {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.02);
+  }
+}
+
+/* Animal Duo Container (🐄 & 🪿) */
+.bezit-animals {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  margin: 10px 0 20px 0;
+  position: relative;
+}
+
+.bezit-animal-icon {
+  font-size: 4.8rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15));
+  display: inline-block;
+}
+
+.bezit-animal-icon:hover {
+  transform: scale(1.25) translateY(-8px);
+}
+
+/* 🐄 Cow Animation */
+.bezit-cow {
+  animation: bezitCowWiggle 3s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+@keyframes bezitCowWiggle {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(-6deg) translateY(-4px) scale(1.04);
+  }
+  75% {
+    transform: rotate(6deg) translateY(-2px) scale(1.02);
+  }
+}
+
+/* 🪿 Goose/Duck Animation */
+.bezit-goose {
+  animation: bezitGooseBob 2.6s ease-in-out infinite;
+  animation-delay: 0.3s;
+  transform-origin: bottom center;
+}
+
+@keyframes bezitGooseBob {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  30% {
+    transform: translateY(-8px) rotate(8deg) scale(1.05);
+  }
+  65% {
+    transform: translateY(-3px) rotate(-5deg) scale(1.02);
+  }
+}
+
+/* Heart connecting the two */
+.bezit-center-heart {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2rem;
+  animation: bezitHeartPulse 1.2s ease-in-out infinite;
+  z-index: 5;
+  filter: drop-shadow(0 0 10px rgba(255, 71, 126, 0.7));
+  pointer-events: none;
+}
+
+@keyframes bezitHeartPulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.3);
+    opacity: 1;
+  }
+}
+
+/* Tagline / Subtitle */
+.bezit-subtext {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #718096;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+[data-theme="dark"] .bezit-subtext {
+  color: #cbd5e1;
+}
+
+.bezit-subtext .sparkle {
+  color: #f59e0b;
+  animation: bezitSpin 2s linear infinite;
+  display: inline-block;
+}
+
+@keyframes bezitSpin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.2); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+/* Floating Hearts Container around the modal */
+.bezit-floating-hearts-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.bezit-floating-heart {
+  position: absolute;
+  font-size: 1.8rem;
+  animation: bezitFloatUpward linear forwards;
+  opacity: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 10px rgba(255, 105, 180, 0.5));
+}
+
+@keyframes bezitFloatUpward {
+  0% {
+    transform: translateY(0) scale(0.5) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(-40px) scale(1) rotate(15deg);
+  }
+  85% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-400px) scale(1.4) rotate(-30deg);
+    opacity: 0;
+  }
+}
+
+/* Replay Badge in Sidebar */
+.bezit-sidebar-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
+  color: #fff;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 4px;
+  box-shadow: 0 2px 8px rgba(255, 117, 140, 0.35);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.bezit-sidebar-badge:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(255, 117, 140, 0.5);
+}

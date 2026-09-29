@@ -3,8 +3,10 @@ import { initAuth, getCurrentUser, onAuthStateChanged, login, register, logout }
 import { renderCalendarView, initCalendar } from './calendar.js';
 import { renderRoomView, fetchCurrentRoom, getCurrentRoom } from './room.js';
 import { renderStatsView, initStats } from './stats.js';
+import { isBezit, showBezitEasterEgg } from './easter-egg.js';
 
 let activeView = 'calendar';
+let bezitWelcomeShown = false;
 
 export async function navigateTo(viewName) {
   activeView = viewName;
@@ -44,6 +46,8 @@ async function handleAuthStateUpdate(user) {
   const appLayout = document.getElementById('app-layout');
 
   if (!user) {
+    bezitWelcomeShown = false;
+    document.getElementById('btn-replay-bezit')?.remove();
     authSection?.classList.remove('hidden');
     appLayout?.classList.add('hidden');
     return;
@@ -101,6 +105,35 @@ async function handleAuthStateUpdate(user) {
   }
 
   await navigateTo(activeView);
+
+  // Hoạt ảnh chào mừng đặc biệt chỉ dành riêng cho tài khoản "bezit"
+  if (isBezit(user)) {
+    // Thêm nút xem lại ở góc người dùng trong sidebar
+    let bezitBadge = document.getElementById('btn-replay-bezit');
+    if (!bezitBadge) {
+      const userInfo = document.querySelector('.user-snippet-info');
+      if (userInfo) {
+        bezitBadge = document.createElement('span');
+        bezitBadge.id = 'btn-replay-bezit';
+        bezitBadge.className = 'bezit-sidebar-badge';
+        bezitBadge.title = 'Bấm để xem lại hoạt ảnh Boà & Zịt nè!';
+        bezitBadge.innerHTML = '🐄🪿 Boà & Zịt';
+        bezitBadge.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showBezitEasterEgg();
+        });
+        userInfo.appendChild(bezitBadge);
+      }
+    }
+
+    // Tự động kích hoạt khi đăng nhập hoặc mỗi lần tải trang
+    if (!bezitWelcomeShown) {
+      bezitWelcomeShown = true;
+      setTimeout(() => {
+        showBezitEasterEgg();
+      }, 400);
+    }
+  }
 }
 
 // Khởi chạy khi tài liệu sẵn sàng (Do dùng type="module" và top-level await, DOM đã sẵn sàng)
