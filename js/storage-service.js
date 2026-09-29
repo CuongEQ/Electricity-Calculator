@@ -1,4 +1,4 @@
-import { firebaseConfig, isFirebaseConfigured } from './config.js';
+import { loadFirebaseConfig, isFirebaseConfigured } from './config.js';
 
 /**
  * SHA-256 Hash helper using Web Crypto API
@@ -16,20 +16,21 @@ let db = null;
 let useFirebase = false;
 
 // Initialize Firebase if configured
-if (isFirebaseConfigured()) {
+const envConfig = await loadFirebaseConfig();
+if (isFirebaseConfigured(envConfig)) {
   try {
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
     const { getFirestore } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const app = initializeApp(firebaseConfig);
+    const app = initializeApp(envConfig);
     db = getFirestore(app);
     useFirebase = true;
-    console.log('⚡ Firebase Firestore đã được kết nối thành công!');
+    console.log('⚡ Firebase Firestore đã được kết nối thành công từ biến môi trường!');
   } catch (err) {
     console.warn('⚠️ Không thể khởi tạo Firebase, chuyển sang LocalStorage fallback:', err);
     useFirebase = false;
   }
 } else {
-  console.log('ℹ️ Ứng dụng đang hoạt động ở chế độ LocalStorage (Để đồng bộ đa thiết bị, hãy điền Firebase Config trong js/config.js)');
+  console.log('ℹ️ Ứng dụng đang hoạt động ở chế độ LocalStorage (Để đồng bộ đa thiết bị, hãy thiết lập các biến môi trường FIREBASE_* trên Vercel hoặc tạo js/config.local.js)');
 }
 
 export function isUsingFirebase() {

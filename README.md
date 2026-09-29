@@ -50,27 +50,28 @@ Dự án được thiết kế với cơ chế **Zero-Config Fallback**:
   npx -y serve .
   ```
 
-### 2. Cấu hình Firebase Firestore (Đồng bộ đa thiết bị)
-Để tất cả các thành viên trong phòng cùng truy cập từ điện thoại/máy tính cá nhân của họ và đồng bộ dữ liệu thời gian thực:
-1. Truy cập [Firebase Console](https://console.firebase.google.com/) và tạo một Project miễn phí.
-2. Vào mục **Firestore Database** -> Chọn **Create database** (chọn chế độ *Test mode* hoặc thêm security rules đọc/ghi).
-3. Vào **Project Settings** -> Thêm ứng dụng Web (Web App) để lấy thông tin cấu hình (`apiKey`, `projectId`,...).
-4. Mở file [js/config.js](file:///home/cuongeq/Project/Web/ElectricityCalculator/js/config.js) và dán các thông số vào:
-   ```javascript
-   export const firebaseConfig = {
-     apiKey: "AIzaSy...",
-     authDomain: "your-project.firebaseapp.com",
-     projectId: "your-project",
-     storageBucket: "your-project.appspot.com",
-     messagingSenderId: "123456789",
-     appId: "1:123456789:web:abcdef"
-   };
+### 2. Cấu hình Biến Môi Trường (Bảo Mật — Tránh Lộ Khóa Trên GitHub)
+Mã nguồn dự án hoàn toàn **không chứa khóa API** trong git repository. Khi deploy lên Vercel:
+1. Tạo Firebase Project miễn phí tại [Firebase Console](https://console.firebase.google.com/).
+2. Vào **Project Settings** -> Thêm ứng dụng Web (Web App) để lấy các thông số.
+3. Khi import dự án vào [Vercel](https://vercel.com) (hoặc trong mục **Project Settings > Environment Variables** trên Vercel Dashboard), thêm 6 biến môi trường tương ứng:
+   ```env
+   FIREBASE_API_KEY=AIzaSy...
+   FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+   FIREBASE_PROJECT_ID=your-project
+   FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+   FIREBASE_MESSAGING_SENDER_ID=123456789
+   FIREBASE_APP_ID=1:123456789:web:abcdef
    ```
+   *(Tham khảo file [.env.example](file:///home/cuongeq/Project/Web/ElectricityCalculator/.env.example))*
+4. Vercel Serverless Function `/api/config` sẽ tự động đọc các biến này và nạp an toàn vào ứng dụng mà không để lộ khóa bí mật trong mã nguồn GitHub.
+
+*(Dành cho dev offline cá nhân: Bạn có thể tạo file `js/config.local.js` — file này đã được thêm vào `.gitignore` nên sẽ không bao giờ bị commit lên GitHub).*
 
 ### 3. Deploy lên Vercel
-Dự án đã có sẵn file `vercel.json` định tuyến cho Single Page Application:
-- Cách 1: Đẩy mã nguồn lên GitHub/GitLab rồi import vào tài khoản [Vercel](https://vercel.com).
-- Cách 2: Sử dụng Vercel CLI trong terminal:
+Dự án đã có sẵn file `vercel.json` định tuyến cho Single Page Application và Serverless Function:
+- **Cách 1 (Khuyên dùng):** Đẩy mã nguồn lên GitHub rồi import vào Vercel (điền các Environment Variables ở Bước 2).
+- **Cách 2:** Sử dụng Vercel CLI trong terminal:
   ```bash
   npx -y vercel
   ```
