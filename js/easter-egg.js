@@ -323,7 +323,7 @@ function stopFireworks() {
 /* ==========================================================================
    Trái tim bay xung quanh (Floating Hearts)
    ========================================================================== */
-const HEART_ICONS = ['💖', '💕', '❤️', '💓', '💘', '🌻'];
+const HEART_ICONS = ['💖', '💕', '❤️', '💓', '💘', '🌻', '🐄', '🪿'];
 
 function spawnHeart() {
   const container = document.getElementById('bezit-hearts-layer');
