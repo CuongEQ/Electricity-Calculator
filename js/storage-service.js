@@ -351,11 +351,23 @@ export async function deleteRoom(roomId) {
   if (!room) return;
 
   if (useFirebase && db) {
-    const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const { doc, deleteDoc, collection, query, where, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     await deleteDoc(doc(db, 'rooms', roomId));
     if (room.code) {
       await deleteDoc(doc(db, 'roomCodes', room.code));
     }
+
+    // Dọn dẹp usage dữ liệu của phòng
+    const q = query(
+      collection(db, 'usages'),
+      where('roomId', '==', roomId)
+    );
+    const snap = await getDocs(q);
+    const deletePromises = [];
+    snap.forEach(docSnap => {
+      deletePromises.push(deleteDoc(doc(db, 'usages', docSnap.id)));
+    });
+    await Promise.all(deletePromises);
   } else {
     const rooms = getLocal('rooms', {});
     delete rooms[roomId];
@@ -505,7 +517,11 @@ export async function getMonthUsages(roomId, monthKey) {
     const snap = await getDocs(q);
     const records = {};
     snap.forEach(docSnap => {
-      records[docSnap.id] = docSnap.data();
+      const data = docSnap.data();
+      // Chuyển đổi format giống LocalStorage: key là userId, value là object chứa các ngày (data.days)
+      if (data && data.userId) {
+        records[data.userId] = data.days || {};
+      }
     });
     return records;
   } else {
