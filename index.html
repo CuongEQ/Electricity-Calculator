@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="css/room.css" />
   <link rel="stylesheet" href="css/stats.css" />
   <link rel="stylesheet" href="css/easter-egg.css" />
+  <link rel="stylesheet" href="css/bezit-corral.css" />
 </head>
 
 <body>
@@ -135,6 +136,12 @@
             <span>Thống kê tiền điện</span>
             <span class="badge badge-primary nav-badge" style="font-size: 0.65rem;">Admin</span>
           </div>
+
+          <div class="nav-item hidden bezit-nav-item" data-view="bezit-corral">
+            <span class="nav-icon">🐮</span>
+            <span>Chuồng boà</span>
+            <span class="badge nav-badge" style="font-size: 0.65rem; background: linear-gradient(135deg, #ff758c, #ff7eb3); color: white;">VIP</span>
+          </div>
         </nav>
 
         <div class="sidebar-footer">
@@ -185,6 +192,11 @@
           <!-- Màn hình 3: Thống kê & Tính tiền điện -->
           <section id="view-stats" class="view-section">
             <div id="stats-view-content"></div>
+          </section>
+
+          <!-- Màn hình 4: Chuồng boà (Dành riêng cho Bezit) -->
+          <section id="view-bezit-corral" class="view-section">
+            <div id="bezit-corral-content"></div>
           </section>
         </main>
       </div>

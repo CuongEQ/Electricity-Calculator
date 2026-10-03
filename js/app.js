@@ -4,12 +4,31 @@ import { renderCalendarView, initCalendar } from './calendar.js';
 import { renderRoomView, fetchCurrentRoom, getCurrentRoom } from './room.js';
 import { renderStatsView, initStats } from './stats.js';
 import { isBezit, showBezitEasterEgg } from './easter-egg.js';
+import { renderBezitCorralView } from './bezit-corral.js';
 
 let activeView = 'calendar';
 let bezitWelcomeShown = false;
 
 export async function navigateTo(viewName) {
+  // Kiểm tra quyền hạn nếu vào Chuồng boà
+  if (viewName === 'bezit-corral') {
+    const user = getCurrentUser();
+    if (!isBezit(user)) {
+      await navigateTo('calendar');
+      return;
+    }
+  }
+
   activeView = viewName;
+
+  // Cập nhật topbar title
+  const topbarTitle = document.querySelector('.topbar-title');
+  if (topbarTitle) {
+    if (viewName === 'calendar') topbarTitle.textContent = 'Lịch biểu & Giờ dùng';
+    else if (viewName === 'room') topbarTitle.textContent = 'Quản lý phòng';
+    else if (viewName === 'stats') topbarTitle.textContent = 'Thống kê tiền điện';
+    else if (viewName === 'bezit-corral') topbarTitle.textContent = '🐮 Chuồng boà';
+  }
 
   // Cập nhật trạng thái sidebar nav
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -38,6 +57,8 @@ export async function navigateTo(viewName) {
     await renderRoomView();
   } else if (viewName === 'stats') {
     await renderStatsView();
+  } else if (viewName === 'bezit-corral') {
+    await renderBezitCorralView();
   }
 }
 
@@ -48,6 +69,7 @@ async function handleAuthStateUpdate(user) {
   if (!user) {
     bezitWelcomeShown = false;
     document.getElementById('btn-replay-bezit')?.remove();
+    document.querySelector('.nav-item[data-view="bezit-corral"]')?.classList.add('hidden');
     authSection?.classList.remove('hidden');
     appLayout?.classList.add('hidden');
     return;
@@ -76,7 +98,8 @@ async function handleAuthStateUpdate(user) {
   }
 
   if (userRoleEl) {
-    userRoleEl.textContent = room ? (isAdmin ? 'Quản lý phòng' : 'Thành viên') : 'Chưa vào phòng';
+    const roleBase = room ? (isAdmin ? 'Quản lý phòng' : 'Thành viên') : 'Chưa vào phòng';
+    userRoleEl.textContent = isBezit(user) ? `${roleBase} 🐮` : roleBase;
   }
 
   // Ẩn/Hiện tab Thống kê dành riêng cho Quản lý
@@ -87,6 +110,19 @@ async function handleAuthStateUpdate(user) {
     } else {
       statsNavItem.classList.add('hidden');
       if (activeView === 'stats') {
+        activeView = 'calendar';
+      }
+    }
+  }
+
+  // Ẩn/Hiện tab "Chuồng boà" dành riêng cho tài khoản bezit
+  const bezitNavItem = document.querySelector('.nav-item[data-view="bezit-corral"]');
+  if (bezitNavItem) {
+    if (isBezit(user)) {
+      bezitNavItem.classList.remove('hidden');
+    } else {
+      bezitNavItem.classList.add('hidden');
+      if (activeView === 'bezit-corral') {
         activeView = 'calendar';
       }
     }
